@@ -1,0 +1,100 @@
+:root {
+  --bg-primary: #0f1117;
+  --bg-secondary: #161822;
+  --bg-elevated: #1c1f2e;
+  --bg-overlay: #12141e;
+
+  --text-primary: #e4e6f0;
+  --text-secondary: #9ca0b0;
+  --text-muted: #6b7084;
+  --text-inverse: #0f1117;
+
+  --border-subtle: #252838;
+  --border-default: #2e3148;
+  --border-strong: #3d4160;
+
+  --accent: #6c8cff;
+  --accent-hover: #5a7af0;
+  --accent-soft: rgba(108, 140, 255, 0.12);
+
+  --success: #34d399;
+  --warning: #fbbf24;
+  --error: #f87171;
+  --info: #60a5fa;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  --font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 20px;
+  --font-size-xl: 26px;
+  --font-size-2xl: 32px;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --transition-fast: 100ms ease;
+  --transition-normal: 150ms ease;
+  --transition-slow: 250ms ease;
+
+  --sidebar-width: 230px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-regular);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}

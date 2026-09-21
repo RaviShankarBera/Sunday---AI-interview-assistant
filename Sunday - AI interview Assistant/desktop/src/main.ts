@@ -1,23 +1,32 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain, screen, desktopCapturer } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
 }
 
-const createWindow = () => {
-  // Create the browser window.
-  const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+let mainWindow: BrowserWindow | null = null;
+let overlayWindow: BrowserWindow | null = null;
+
+const isDev = !app.isPackaged;
+
+function createMainWindow(): void {
+  mainWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    minWidth: 1100,
+    minHeight: 700,
+    title: 'Sunday',
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
     },
   });
 
-  // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
@@ -26,18 +35,118 @@ const createWindow = () => {
     );
   }
 
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
-};
+  mainWindow.once('ready-to-show', () => {
+    mainWindow?.show();
+  });
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+    if (overlayWindow && !overlayWindow.isDestroyed()) {
+      overlayWindow.close();
+    }
+    overlayWindow = null;
+  });
+}
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+function createOverlayWindow(): void {
+  if (overlayWindow && !overlayWindow.isDestroyed()) {
+    overlayWindow.focus();
+    return;
+  }
+
+  const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
+
+  overlayWindow = new BrowserWindow({
+    width: 400,
+    height: 550,
+    x: screenWidth - 420,
+    y: 100,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    resizable: true,
+    skipTaskbar: true,
+    title: 'Sunday Overlay',
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  });
+
+  overlayWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    overlayWindow.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}#/overlay`);
+  } else {
+    overlayWindow.loadFile(
+      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+      { hash: '/overlay' },
+    );
+  }
+
+  overlayWindow.once('ready-to-show', () => {
+    overlayWindow?.show();
+  });
+
+  overlayWindow.on('closed', () => {
+    overlayWindow = null;
+  });
+}
+
+// IPC Handlers
+ipcMain.handle('sunday:app:get-version', () => app.getVersion());
+
+ipcMain.handle('sunday:overlay:show', () => {
+  createOverlayWindow();
+});
+
+ipcMain.handle('sunday:overlay:hide', () => {
+  if (overlayWindow && !overlayWindow.isDestroyed()) {
+    overlayWindow.hide();
+  }
+});
+
+ipcMain.handle('sunday:overlay:toggle', () => {
+  if (overlayWindow && !overlayWindow.isDestroyed()) {
+    if (overlayWindow.isVisible()) {
+      overlayWindow.hide();
+    } else {
+      overlayWindow.show();
+    }
+  } else {
+    createOverlayWindow();
+  }
+});
+
+ipcMain.handle('sunday:audio:get-sources', async () => {
+  const sources = await desktopCapturer.getSources({
+    types: ['window', 'screen'],
+    thumbnailSize: { width: 0, height: 0 },
+  });
+  return sources.map((s) => ({
+    id: s.id,
+    name: s.name,
+    thumbnailDataURL: '',
+  }));
+});
+
+ipcMain.handle('sunday:screen:get-sources', async () => {
+  const sources = await desktopCapturer.getSources({
+    types: ['window', 'screen'],
+    thumbnailSize: { width: 320, height: 180 },
+  });
+  return sources.map((s) => ({
+    id: s.id,
+    name: s.name,
+    thumbnailDataURL: s.thumbnail.toDataURL(),
+  }));
+});
+
+app.on('ready', createMainWindow);
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
@@ -45,12 +154,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+    createMainWindow();
   }
 });
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
