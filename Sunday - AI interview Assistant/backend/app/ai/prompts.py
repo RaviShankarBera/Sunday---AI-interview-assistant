@@ -86,7 +86,7 @@ def build_preparation_prompt(
         "resume": "Generate 5 questions about the candidate's specific experience listed in their resume.",
         "jd": "Generate 5 questions about how the candidate's experience matches the job requirements.",
         "general": "Generate a mix of technical and behavioral interview questions.",
-    }.get(topic, topic_instruction.get("general"))
+    }.get(topic, "Generate a mix of technical and behavioral interview questions.")
 
     messages.append({"role": "system", "content": topic_instruction})
     messages.append({"role": "user", "content": f"Generate preparation questions for topic: {topic}"})

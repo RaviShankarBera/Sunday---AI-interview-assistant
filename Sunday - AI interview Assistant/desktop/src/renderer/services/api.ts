@@ -1,5 +1,5 @@
-const API_BASE = 'http://127.0.0.1:8001/api/v1';
-const WS_BASE = 'ws://127.0.0.1:8001';
+const API_BASE = 'http://127.0.0.1:8002/api/v1';
+const WS_BASE = 'ws://127.0.0.1:8002';
 
 async function request(path: string, options: RequestInit = {}): Promise<any> {
   const url = `${API_BASE}${path}`;

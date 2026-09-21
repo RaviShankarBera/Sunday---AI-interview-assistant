@@ -1,130 +1,75 @@
-import { useState } from 'react';
-
-type OverlayStatus = 'idle' | 'listening' | 'generating' | 'error';
+import { useState, useEffect, useRef } from 'react';
+import { api, ws } from '../services/api';
 
 export default function Overlay() {
-  const [status, setStatus] = useState<OverlayStatus>('idle');
-  const [question, setQuestion] = useState('');
+  const [transcript, setTranscript] = useState('');
   const [response, setResponse] = useState('');
-  const [keyPoints, setKeyPoints] = useState<string[]>([]);
+  const [status, setStatus] = useState<'idle' | 'listening' | 'processing'>('idle');
+  const [question, setQuestion] = useState('');
+  const responseRef = useRef('');
+
+  useEffect(() => {
+    ws.connect();
+    ws.on('transcript.partial', (data: any) => setTranscript(data.payload?.text || ''));
+    ws.on('transcript.final', (data: any) => setTranscript(data.payload?.text || ''));
+    ws.on('question.detected', (data: any) => {
+      setQuestion(data.payload?.question || '');
+      setStatus('processing');
+    });
+    ws.on('answer.token', (data: any) => {
+      responseRef.current += data.payload?.text || '';
+      setResponse(responseRef.current);
+    });
+    ws.on('answer.completed', () => {
+      setStatus('listening');
+    });
+    return () => ws.disconnect();
+  }, []);
+
+  const toggleCapture = () => {
+    if (status === 'idle') {
+      ws.send({ type: 'session.start' });
+      setStatus('listening');
+    } else {
+      ws.send({ type: 'session.stop' });
+      setStatus('idle');
+    }
+  };
 
   return (
     <div style={styles.container}>
-      <div style={styles.titleBar} data-tauric-drag-region>
-        <span style={styles.brand}>SUNDAY</span>
-        <span style={styles.latency}>● Ready</span>
+      <div style={styles.header}>
+        <span style={styles.dot} />
+        <span style={styles.statusText}>{status === 'idle' ? 'Ready' : status === 'listening' ? 'Listening' : 'Processing...'}</span>
       </div>
 
-      <div style={styles.body}>
-        <div style={styles.section}>
-          <span style={styles.label}>QUESTION</span>
-          {question ? (
-            <p style={styles.questionText}>{question}</p>
-          ) : (
-            <p style={styles.placeholder}>Waiting for question...</p>
-          )}
-        </div>
+      <button onClick={toggleCapture} style={{ ...styles.button, background: status === 'listening' ? 'var(--error)' : 'var(--accent)' }}>
+        {status === 'idle' ? 'Start' : 'Stop'}
+      </button>
 
-        <div style={styles.section}>
-          <span style={styles.label}>SUGGESTED RESPONSE</span>
-          {response ? (
-            <p style={styles.responseText}>{response}</p>
-          ) : (
-            <p style={styles.placeholder}>Response will appear here...</p>
-          )}
-        </div>
+      {question && <p style={styles.question}>{question}</p>}
 
-        {keyPoints.length > 0 && (
-          <div style={styles.section}>
-            <span style={styles.label}>KEY POINTS</span>
-            <div style={styles.points}>
-              {keyPoints.map((point, i) => (
-                <span key={i} style={styles.point}>{point}</span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+      {response && (
+        <div style={styles.response}>
+          <p style={styles.responseText}>{response}</p>
+        </div>
+      )}
+
+      {!response && transcript && (
+        <p style={styles.transcript}>{transcript}</p>
+      )}
     </div>
   );
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  container: {
-    width: '100vw',
-    height: '100vh',
-    background: 'rgba(18, 20, 30, 0.95)',
-    borderRadius: '16px',
-    overflow: 'hidden',
-    display: 'flex',
-    flexDirection: 'column',
-    fontFamily: 'var(--font-family)',
-  },
-  titleBar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '12px 16px',
-    borderBottom: '1px solid rgba(255,255,255,0.06)',
-    WebkitAppRegion: 'drag' as unknown as string,
-  },
-  brand: {
-    fontSize: '12px',
-    fontWeight: 700,
-    color: '#6c8cff',
-    letterSpacing: '2px',
-  },
-  latency: {
-    fontSize: '11px',
-    color: '#34d399',
-  },
-  body: {
-    flex: 1,
-    overflow: 'auto',
-    padding: '16px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '16px',
-  },
-  section: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '6px',
-  },
-  label: {
-    fontSize: '10px',
-    fontWeight: 600,
-    color: '#6b7084',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
-  },
-  questionText: {
-    fontSize: '14px',
-    color: '#e4e6f0',
-    lineHeight: 1.5,
-    fontWeight: 500,
-  },
-  responseText: {
-    fontSize: '13px',
-    color: '#9ca0b0',
-    lineHeight: 1.6,
-  },
-  placeholder: {
-    fontSize: '13px',
-    color: '#6b7084',
-    fontStyle: 'italic',
-  },
-  points: {
-    display: 'flex',
-    flexWrap: 'wrap' as const,
-    gap: '6px',
-  },
-  point: {
-    background: 'rgba(108, 140, 255, 0.12)',
-    color: '#6c8cff',
-    padding: '3px 10px',
-    borderRadius: '999px',
-    fontSize: '11px',
-    fontWeight: 500,
-  },
+  container: { padding: 16, height: '100vh', display: 'flex', flexDirection: 'column', background: 'rgba(13, 17, 23, 0.95)', color: 'white', fontFamily: 'var(--font-family)' },
+  header: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 },
+  dot: { width: 6, height: 6, borderRadius: '50%', background: 'var(--success)' },
+  statusText: { fontSize: 11, color: 'var(--text-muted)' },
+  button: { padding: '6px 16px', border: 'none', borderRadius: 4, color: 'white', fontSize: 12, fontWeight: 600, cursor: 'pointer', marginBottom: 12, alignSelf: 'flex-start' },
+  question: { fontSize: 13, color: 'var(--accent)', marginBottom: 8, fontWeight: 500 },
+  response: { background: 'rgba(255,255,255,0.05)', borderRadius: 6, padding: 10, flex: 1, overflow: 'auto' },
+  responseText: { fontSize: 13, lineHeight: 1.5, color: 'var(--text-primary)' },
+  transcript: { fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' },
 };

@@ -8,7 +8,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_TIMEOUT = 60.0
+OLLAMA_TIMEOUT = 300.0
 
 
 class ModelProvider:

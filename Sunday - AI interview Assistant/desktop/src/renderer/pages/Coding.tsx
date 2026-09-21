@@ -1,142 +1,59 @@
 import { useState } from 'react';
+import { api } from '../services/api';
 
 export default function Coding() {
-  const [captured, setCaptured] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
+  const [input, setInput] = useState('');
   const [analysis, setAnalysis] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleCapture = () => {
-    setCaptured(true);
-  };
-
-  const handleAnalyze = () => {
-    setAnalyzing(true);
-    setTimeout(() => {
-      setAnalyzing(false);
-      setAnalysis('Coding analysis will appear here once the backend OCR and AI pipeline are connected.');
-    }, 1000);
-  };
-
-  const handleClear = () => {
-    setCaptured(false);
+  const analyze = async () => {
+    if (!input.trim()) return;
+    setLoading(true);
     setAnalysis('');
+    try {
+      const res = await api.chat([
+        { role: 'system', content: 'You are a coding interview assistant. Analyze the provided code or problem and give clear explanations with approach, complexity, and improvements.' },
+        { role: 'user', content: input },
+      ]);
+      setAnalysis(res.answer);
+    } catch (e: any) {
+      setAnalysis(`Error: ${e.message}`);
+    }
+    setLoading(false);
   };
 
   return (
     <div>
-      <h1 style={styles.title}>Coding Mode</h1>
-      <p style={styles.subtitle}>Capture and analyze code from your screen</p>
+      <h1 style={styles.title}>Coding</h1>
+      <p style={styles.subtitle}>Analyze code or practice coding problems</p>
 
-      <div style={styles.columns}>
-        <div style={styles.column}>
-          <h3 style={styles.label}>Captured Screen</h3>
-          <div style={styles.screenPanel}>
-            {captured ? (
-              <p style={styles.placeholder}>Screen captured. Connect backend for OCR analysis.</p>
-            ) : (
-              <p style={styles.placeholder}>No screen captured yet.</p>
-            )}
-          </div>
+      <textarea
+        value={input}
+        onChange={e => setInput(e.target.value)}
+        placeholder="Paste code or describe a coding problem..."
+        style={styles.textarea}
+      />
+
+      <button onClick={analyze} disabled={loading || !input.trim()} style={{ ...styles.button, opacity: loading || !input.trim() ? 0.5 : 1 }}>
+        {loading ? 'Analyzing...' : 'Analyze'}
+      </button>
+
+      {analysis && (
+        <div style={styles.result}>
+          <h3 style={styles.resultTitle}>Analysis</h3>
+          <p style={styles.resultText}>{analysis}</p>
         </div>
-
-        <div style={styles.column}>
-          <h3 style={styles.label}>Analysis</h3>
-          <div style={styles.analysisPanel}>
-            {analyzing ? (
-              <p style={styles.placeholder}>Analyzing screen...</p>
-            ) : analysis ? (
-              <p>{analysis}</p>
-            ) : (
-              <p style={styles.placeholder}>Analysis will appear here after capture.</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div style={styles.actions}>
-        <button onClick={handleCapture} style={styles.button}>Capture Screen</button>
-        <button
-          onClick={handleAnalyze}
-          disabled={!captured || analyzing}
-          style={{
-            ...styles.button,
-            opacity: !captured || analyzing ? 0.5 : 1,
-          }}
-        >
-          Analyze
-        </button>
-        <button onClick={handleClear} style={{ ...styles.button, background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}>
-          Clear
-        </button>
-      </div>
+      )}
     </div>
   );
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  title: {
-    fontSize: 'var(--font-size-xl)',
-    fontWeight: 'var(--font-weight-bold)',
-    color: 'var(--text-primary)',
-    marginBottom: 'var(--space-2)',
-  },
-  subtitle: {
-    fontSize: 'var(--font-size-base)',
-    color: 'var(--text-secondary)',
-    marginBottom: 'var(--space-6)',
-  },
-  columns: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: 'var(--space-5)',
-    marginBottom: 'var(--space-5)',
-  },
-  column: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 'var(--space-2)',
-  },
-  label: {
-    fontSize: 'var(--font-size-sm)',
-    fontWeight: 'var(--font-weight-semibold)',
-    color: 'var(--text-muted)',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.5px',
-  },
-  screenPanel: {
-    background: 'var(--bg-elevated)',
-    border: '1px solid var(--border-subtle)',
-    borderRadius: 'var(--radius-md)',
-    padding: 'var(--space-6)',
-    minHeight: '300px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  analysisPanel: {
-    background: 'var(--bg-elevated)',
-    border: '1px solid var(--border-subtle)',
-    borderRadius: 'var(--radius-md)',
-    padding: 'var(--space-5)',
-    minHeight: '300px',
-    lineHeight: 1.6,
-  },
-  placeholder: {
-    color: 'var(--text-muted)',
-    fontStyle: 'italic',
-  },
-  actions: {
-    display: 'flex',
-    gap: 'var(--space-3)',
-  },
-  button: {
-    padding: 'var(--space-2) var(--space-5)',
-    borderRadius: 'var(--radius-sm)',
-    border: 'none',
-    background: 'var(--accent)',
-    color: 'white',
-    fontSize: 'var(--font-size-base)',
-    fontWeight: 'var(--font-weight-semibold)',
-    cursor: 'pointer',
-  },
+  title: { fontSize: 'var(--font-size-xl)', fontWeight: 'var(--font-weight-bold)', color: 'var(--text-primary)', marginBottom: 'var(--space-2)' },
+  subtitle: { fontSize: 'var(--font-size-base)', color: 'var(--text-secondary)', marginBottom: 'var(--space-5)' },
+  textarea: { width: '100%', minHeight: 200, padding: 'var(--space-4)', background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', fontSize: 'var(--font-size-base)', fontFamily: 'monospace', resize: 'vertical', outline: 'none', marginBottom: 'var(--space-4)' },
+  button: { padding: 'var(--space-2) var(--space-5)', background: 'var(--accent)', color: 'white', border: 'none', borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-size-base)', fontWeight: 'var(--font-weight-semibold)', cursor: 'pointer', marginBottom: 'var(--space-5)' },
+  result: { background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 'var(--radius-md)', padding: 'var(--space-5)' },
+  resultTitle: { fontSize: 'var(--font-size-md)', fontWeight: 'var(--font-weight-semibold)', color: 'var(--text-primary)', marginBottom: 'var(--space-3)' },
+  resultText: { fontSize: 'var(--font-size-base)', color: 'var(--text-primary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' as const },
 };
