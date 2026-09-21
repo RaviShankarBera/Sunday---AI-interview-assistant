@@ -38,3 +38,6 @@ Desktop.ini
 # Temporary
 *.tmp
 *.log
+
+# Separate project in parent dir
+../Multi Job Portal Automation Tool/
