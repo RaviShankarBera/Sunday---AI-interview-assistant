@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     environment: str = "development"
     host: str = "127.0.0.1"
-    port: int = 8000
+    port: int = 8001
     cors_origins: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173"]
 
     ollama_host: str = "http://127.0.0.1:11434"
